@@ -1,18 +1,76 @@
 pipeline {
   agent any
-  environment {
-    DOCKER_HOST = 'tcp://192.168.99.100:2375'
+
+  // Trigger a build on each push to GitHub (requires GitHub plugin + webhook)
+  triggers {
+    githubPush()
   }
+
+  environment {
+    // Your repo URL
+    REPO_URL = 'https://github.com/mohsinustad/cicd_project.git'
+    // The branch you want to build
+    BRANCH   = 'main'
+  }
+
   stages {
-    stage('Run in Docker') {
+    stage('Checkout') {
       steps {
-        script {
-          // Pull & run Node in a container on your remote Docker daemon
-          docker.image('node:16-alpine').inside {
-            sh 'node --version'
-          }
+        // Pull the latest code
+        git url: env.REPO_URL, branch: env.BRANCH
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        // Install your Node.js dependencies
+        sh 'npm install'
+      }
+    }
+
+    stage('Run Tests') {
+      steps {
+        // Run your test suite
+        sh 'npm test'
+      }
+      post {
+        always {
+          // Publish test results (if you’re outputting JUnit‑style XML)
+          junit '**/test-results/*.xml'
         }
       }
+    }
+
+    stage('Build') {
+      steps {
+        // Build your app (e.g. bundle, compile, etc.)
+        sh 'npm run build'
+      }
+      post {
+        success {
+          // Archive the build artifacts
+          archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+        }
+      }
+    }
+
+    stage('Deploy (Placeholder)') {
+      when {
+        branch 'main'
+      }
+      steps {
+        echo '🎉 Deploying to production…'
+        // e.g. sh './deploy.sh' or a scp/ssh step
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "✅ Pipeline completed successfully!"
+    }
+    failure {
+      echo "❌ Pipeline failed. Check the logs above."
     }
   }
 }
