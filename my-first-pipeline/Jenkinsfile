@@ -1,11 +1,17 @@
 pipeline {
-  agent {
-    docker { image 'node:16-alpine' }
+  agent any
+  environment {
+    DOCKER_HOST = 'tcp://192.168.99.100:2375'
   }
   stages {
-    stage('Test') {
+    stage('Run in Docker') {
       steps {
-        sh 'node --version'
+        script {
+          // Pull & run Node in a container on your remote Docker daemon
+          docker.image('node:16-alpine').inside {
+            sh 'node --version'
+          }
+        }
       }
     }
   }
